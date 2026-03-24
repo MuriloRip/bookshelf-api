@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: bookshelf-api
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/bookshelf
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - NODE_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - bookshelf-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: bookshelf-db
+    environment:
+      POSTGRES_DB: bookshelf
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - bookshelf-network
+
+volumes:
+  postgres_data:
+
+networks:
+  bookshelf-network:
+    driver: bridge
